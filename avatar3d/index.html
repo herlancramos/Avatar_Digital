@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Avatar 3D - Colores y Controles | PLY Viewer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+    }
+
+    /* Panel de controles premium */
+    .controls-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 310px;
+      background: rgba(20, 25, 40, 0.92);
+      backdrop-filter: blur(16px);
+      border-radius: 28px;
+      padding: 18px;
+      color: #f0f0f0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      z-index: 20;
+      transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.3s;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+
+    .controls-panel.closed {
+      transform: translateX(calc(100% + 20px));
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 200, 120, 0.4);
+    }
+
+    .panel-header h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #ffcc88, #ffaa66);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .close-btn {
+      background: rgba(200, 70, 70, 0.85);
+      border: none;
+      color: white;
+      padding: 5px 14px;
+      border-radius: 40px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    .close-btn:hover {
+      background: #ff5555;
+      transform: scale(1.02);
+    }
+
+    .control-group {
+      margin-bottom: 22px;
+    }
+
+    .control-group label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #ffddbb;
+      letter-spacing: 0.5px;
+    }
+
+    .axis-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .axis {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      font-weight: bold;
+      color: #ffbb88;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      background: #2c5a7a;
+      border-radius: 5px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      background: #ffaa44;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 4px #ffcc88;
+      border: none;
+    }
+
+    .value-display {
+      width: 45px;
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      font-weight: bold;
+      color: #ffdd99;
+    }
+
+    .model-status {
+      background: #1e2a36e0;
+      border-radius: 40px;
+      padding: 9px 12px;
+      text-align: center;
+      margin-top: 18px;
+      font-size: 12px;
+      font-weight: bold;
+      border: 1px solid #3a6a8a;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+
+    .toggle-panel-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #ffaa44;
+      border: none;
+      color: #1e1e2a;
+      font-weight: bold;
+      padding: 8px 18px;
+      border-radius: 40px;
+      cursor: pointer;
+      z-index: 25;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transition: 0.2s;
+    }
+
+    .toggle-panel-btn:hover {
+      background: #ffcc66;
+      transform: scale(1.02);
+    }
+
+    @media (max-width: 600px) {
+      .controls-panel { width: 280px; padding: 15px; top: 12px; right: 12px; }
+      .value-display { width: 38px; }
+    }
+  </style>
+</head>
+<body>
+
+  <button id="togglePanelBtn" class="toggle-panel-btn">🎮 Mostrar Controles</button>
+
+  <div id="controlsPanel" class="controls-panel">
+    <div class="panel-header">
+      <h3>🎛️ CONTROL AVATAR 3D</h3>
+      <button id="closeControlsBtn" class="close-btn">✖ Cerrar</button>
+    </div>
+
+    <!-- Rotación -->
+    <div class="control-group">
+      <label>🔄 ROTAR</label>
+      <div class="axis-row">
+        <div class="axis">X</div><div class="axis">Y</div><div class="axis">Z</div>
+      </div>
+      <div class="axis-row">
+        <div class="slider-container"><input type="range" id="rotX" min="-180" max="180" step="1" value="0"><span id="rotXVal" class="value-display">0°</span></div>
+        <div class="slider-container"><input type="range" id="rotY" min="-180" max="180" step="1" value="0"><span id="rotYVal" class="value-display">0°</span></div>
+        <div class="slider-container"><input type="range" id="rotZ" min="-180" max="180" step="1" value="0"><span id="rotZVal" class="value-display">0°</span></div>
+      </div>
+    </div>
+
+    <!-- Traslación -->
+    <div class="control-group">
+      <label>📍 MOVER</label>
+      <div class="axis-row">
+        <div class="axis">X</div><div class="axis">Y</div><div class="axis">Z</div>
+      </div>
+      <div class="axis-row">
+        <div class="slider-container"><input type="range" id="posX" min="-2.2" max="2.2" step="0.01" value="0"><span id="posXVal" class="value-display">0.00</span></div>
+        <div class="slider-container"><input type="range" id="posY" min="-2.2" max="2.2" step="0.01" value="0"><span id="posYVal" class="value-display">0.00</span></div>
+        <div class="slider-container"><input type="range" id="posZ" min="-2.2" max="2.2" step="0.01" value="0"><span id="posZVal" class="value-display">0.00</span></div>
+      </div>
+    </div>
+
+    <!-- Escala -->
+    <div class="control-group">
+      <label>📏 ESCALAR</label>
+      <div class="axis-row">
+        <div class="axis">X</div><div class="axis">Y</div><div class="axis">Z</div>
+      </div>
+      <div class="axis-row">
+        <div class="slider-container"><input type="range" id="sclX" min="0.2" max="3.5" step="0.01" value="1"><span id="sclXVal" class="value-display">1.00</span></div>
+        <div class="slider-container"><input type="range" id="sclY" min="0.2" max="3.5" step="0.01" value="1"><span id="sclYVal" class="value-display">1.00</span></div>
+        <div class="slider-container"><input type="range" id="sclZ" min="0.2" max="3.5" step="0.01" value="1"><span id="sclZVal" class="value-display">1.00</span></div>
+      </div>
+    </div>
+
+    <button id="resetBtn" style="width:100%; background:#2c5a7a; border:none; padding:8px; border-radius:40px; color:white; margin-top:8px; cursor:pointer; font-weight:bold; transition:0.2s;">⟳ Resetear todo</button>
+
+    <div class="model-status" id="modelLoadedIndicator">
+      ⏳ Inicializando...
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- CONFIGURACIÓN INICIAL ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a20);
+    scene.fog = new THREE.FogExp2(0x0a0a20, 0.006);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 400);
+    camera.position.set(2.5, 1.8, 3.5);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true; // mejora visual
+    document.body.appendChild(renderer.domElement);
+
+    // Controles de cámara orbitales
+    const orbitControls = new OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.06;
+    orbitControls.rotateSpeed = 1.6;
+    orbitControls.zoomSpeed = 1.2;
+    orbitControls.panSpeed = 0.8;
+    orbitControls.target.set(0, 0.2, 0);
+
+    // --- ILUMINACIÓN MEJORADA (para potenciar colores vivos) ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.68);
+    scene.add(ambientLight);
+    
+    const mainLight = new THREE.DirectionalLight(0xfff5e0, 1.2);
+    mainLight.position.set(1.5, 2.2, 1.8);
+    mainLight.castShadow = true;
+    mainLight.receiveShadow = false;
+    scene.add(mainLight);
+    
+    const fillLight = new THREE.PointLight(0x88aaff, 0.55);
+    fillLight.position.set(1, 1.2, 2);
+    scene.add(fillLight);
+    
+    const backLight = new THREE.PointLight(0xffaa66, 0.5);
+    backLight.position.set(-1, 0.8, -1.5);
+    scene.add(backLight);
+    
+    const rimLight = new THREE.PointLight(0xffccaa, 0.45);
+    rimLight.position.set(0.5, 1.2, -1.8);
+    scene.add(rimLight);
+
+    // --- VARIABLES GLOBALES ---
+    let currentModel = null;
+    let modelBaseCenter = new THREE.Vector3();
+    let modelBaseScale = 1;
+    let hasValidColors = true;
+
+    // --- FUNCIÓN AVANZADA PARA LEER PLY (TEXTO) con soporte robusto de colores ---
+    async function loadPLYWithColors(url) {
+      const response = await fetch(url);
+      const text = await response.text();
+      const lines = text.split(/\r?\n/);
+      
+      let vertexCount = 0, faceCount = 0;
+      let properties = []; // { name, type }
+      let dataStart = 0;
+      let inHeader = true;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (inHeader) {
+          if (line.startsWith('element vertex')) vertexCount = parseInt(line.split(/\s+/)[2]);
+          else if (line.startsWith('element face')) faceCount = parseInt(line.split(/\s+/)[2]);
+          else if (line.startsWith('property')) {
+            const parts = line.split(/\s+/);
+            if (parts.length >= 3) {
+              const propType = parts[1];
+              const propName = parts[2];
+              properties.push({ name: propName, type: propType });
+            }
+          }
+          else if (line === 'end_header') {
+            inHeader = false;
+            dataStart = i + 1;
+            break;
+          }
+        }
+      }
+      
+      const dataLines = lines.slice(dataStart, dataStart + vertexCount + faceCount);
+      const vertexLines = dataLines.slice(0, vertexCount);
+      
+      // Mapear índices de coordenadas y colores (soportando múltiples variantes)
+      let posIdx = { x: -1, y: -1, z: -1 };
+      let colorIdx = { r: -1, g: -1, b: -1 };
+      let colorScaleR = 1, colorScaleG = 1, colorScaleB = 1;
+      
+      properties.forEach((prop, idx) => {
+        const name = prop.name.toLowerCase();
+        const type = prop.type.toLowerCase();
+        if (name === 'x') posIdx.x = idx;
+        else if (name === 'y') posIdx.y = idx;
+        else if (name === 'z') posIdx.z = idx;
+        
+        // Detección de canales de color: diffuse_red, red, r, diffuse_r, etc.
+        if (name === 'diffuse_red' || name === 'red' || name === 'r') {
+          colorIdx.r = idx;
+          colorScaleR = (type.includes('uchar') || type.includes('uint8')) ? 1/255.0 : 1;
+        }
+        if (name === 'diffuse_green' || name === 'green' || name === 'g') {
+          colorIdx.g = idx;
+          colorScaleG = (type.includes('uchar') || type.includes('uint8')) ? 1/255.0 : 1;
+        }
+        if (name === 'diffuse_blue' || name === 'blue' || name === 'b') {
+          colorIdx.b = idx;
+          colorScaleB = (type.includes('uchar') || type.includes('uint8')) ? 1/255.0 : 1;
+        }
+      });
+      
+      // Si no se encontraron colores convencionales, buscar también 'diffuse_r', 'diffuse_g'...
+      if (colorIdx.r === -1) {
+        properties.forEach((prop, idx) => {
+          const name = prop.name.toLowerCase();
+          const type = prop.type.toLowerCase();
+          if (name === 'diffuse_r' || name === 'r') { colorIdx.r = idx; colorScaleR = type.includes('uchar') ? 1/255.0 : 1; }
+          if (name === 'diffuse_g' || name === 'g') { colorIdx.g = idx; colorScaleG = type.includes('uchar') ? 1/255.0 : 1; }
+          if (name === 'diffuse_b' || name === 'b') { colorIdx.b = idx; colorScaleB = type.includes('uchar') ? 1/255.0 : 1; }
+        });
+      }
+      
+      const positions = [];
+      const colors = [];
+      let colorMissing = false;
+      
+      for (const line of vertexLines) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length < 3) continue;
+        
+        const x = parseFloat(parts[posIdx.x]);
+        const y = parseFloat(parts[posIdx.y]);
+        const z = parseFloat(parts[posIdx.z]);
+        if (isNaN(x) || isNaN(y) || isNaN(z)) continue;
+        positions.push(x, y, z);
+        
+        let r = 0.85, g = 0.7, b = 0.9; // color base cálido por defecto si no hay colores reales
+        let hasColor = false;
+        
+        if (colorIdx.r !== -1 && colorIdx.g !== -1 && colorIdx.b !== -1) {
+          let rawR = parseFloat(parts[colorIdx.r]);
+          let rawG = parseFloat(parts[colorIdx.g]);
+          let rawB = parseFloat(parts[colorIdx.b]);
+          if (!isNaN(rawR) && !isNaN(rawG) && !isNaN(rawB)) {
+            r = rawR * colorScaleR;
+            g = rawG * colorScaleG;
+            b = rawB * colorScaleB;
+            // si los valores son >1 (caso 255 sin escalar) hacemos ajuste inteligente extra
+            if (r > 1.01 || g > 1.01 || b > 1.01) { r /= 255; g /= 255; b /= 255; }
+            hasColor = true;
+          }
+        }
+        
+        if (!hasColor) {
+          colorMissing = true;
+          // generar color basado en posición para que nunca sea gris plano (fallback artístico)
+          const hue = (Math.atan2(y, x) + Math.PI) / (2 * Math.PI);
+          const sat = 0.75;
+          const light = 0.65 + (z * 0.1);
+          const rgb = new THREE.Color().setHSL(hue, sat, Math.min(0.85, light));
+          r = rgb.r;
+          g = rgb.g;
+          b = rgb.b;
+        }
+        
+        colors.push(r, g, b);
+      }
+      
+      if (colorMissing && !(colorIdx.r !== -1)) {
+        console.warn("⚠️ No se detectaron colores en PLY, aplicando colores dinámicos (HSL por posición)");
+        hasValidColors = false;
+      } else {
+        hasValidColors = true;
+      }
+      
+      // --- PROCESAR CARAS (triángulos / quads) ---
+      const faceLines = dataLines.slice(vertexCount, vertexCount + faceCount);
+      let indices = [];
+      for (const line of faceLines) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length < 4) continue;
+        const nVertices = parseInt(parts[0]);
+        if (nVertices === 3) {
+          indices.push(parseInt(parts[1]), parseInt(parts[2]), parseInt(parts[3]));
+        } else if (nVertices === 4) {
+          const i1 = parseInt(parts[1]), i2 = parseInt(parts[2]), i3 = parseInt(parts[3]), i4 = parseInt(parts[4]);
+          indices.push(i1, i2, i3, i1, i3, i4);
+        }
+      }
+      
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
+      if (indices.length > 0) geometry.setIndex(indices);
+      
+      // IMPORTANTE: Calcular normales para que la luz interactúe y los colores se muestren correctamente!
+      if (indices.length > 0) {
+        geometry.computeVertexNormals(); // sin normales la malla se ve negra o plana
+      }
+      
+      return { geometry, hasFaces: indices.length > 0 };
+    }
+
+    // --- CARGAR MODELO, CORRECCIÓN DE ORIENTACIÓN (evitar boca abajo) ---
+    async function loadAndSetupModel() {
+      const statusDiv = document.getElementById('modelLoadedIndicator');
+      statusDiv.innerHTML = '📡 Cargando modelo avatar.ply ...';
+      statusDiv.style.color = '#ffcc88';
+      
+      try {
+        const { geometry, hasFaces } = await loadPLYWithColors('modelo/avatar.ply');
+        
+        geometry.computeBoundingBox();
+        const box = geometry.boundingBox;
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scaleFactor = 1.65 / maxDim;   // factor para tamaño equilibrado
+        modelBaseScale = scaleFactor;
+        modelBaseCenter = center.clone();
+        
+        let modelObject;
+        if (hasFaces) {
+          const material = new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            roughness: 0.38,
+            metalness: 0.12,
+            side: THREE.DoubleSide,
+            flatShading: false
+          });
+          modelObject = new THREE.Mesh(geometry, material);
+        } else {
+          const material = new THREE.PointsMaterial({
+            size: 0.022,
+            vertexColors: true,
+            sizeAttenuation: true
+          });
+          modelObject = new THREE.Points(geometry, material);
+        }
+        
+        // CORRECCIÓN DE ORIENTACIÓN: Rotación 180° en X para que no esté boca abajo
+        // Además centrado y escala base, aplicamos matriz de transformación inicial.
+        const correctionMatrix = new THREE.Matrix4();
+        correctionMatrix.makeTranslation(-center.x, -center.y, -center.z);
+        const rot180X = new THREE.Matrix4().makeRotationX(Math.PI);
+        correctionMatrix.multiplyMatrices(rot180X, correctionMatrix);
+        const scaleMatBase = new THREE.Matrix4().makeScale(scaleFactor, scaleFactor, scaleFactor);
+        correctionMatrix.multiplyMatrices(scaleMatBase, correctionMatrix);
+        
+        modelObject.matrixAutoUpdate = false;
+        modelObject.matrix.copy(correctionMatrix);
+        
+        if (currentModel) scene.remove(currentModel);
+        scene.add(modelObject);
+        currentModel = modelObject;
+        
+        // Indicador visual según calidad de colores
+        const colorMsg = hasValidColors ? "con colores originales" : "colores dinámicos (fallback)";
+        statusDiv.innerHTML = `✅ MODELO CARGADO (${colorMsg} | orientación corregida)`;
+        statusDiv.style.color = '#aaffcc';
+        
+        // Resetear todos los sliders a valores neutros
+        document.getElementById('rotX').value = 0;
+        document.getElementById('rotY').value = 0;
+        document.getElementById('rotZ').value = 0;
+        document.getElementById('posX').value = 0;
+        document.getElementById('posY').value = 0;
+        document.getElementById('posZ').value = 0;
+        document.getElementById('sclX').value = 1;
+        document.getElementById('sclY').value = 1;
+        document.getElementById('sclZ').value = 1;
+        updateAllTransformations();
+        
+      } catch (error) {
+        console.error('Error cargando PLY:', error);
+        statusDiv.innerHTML = '❌ ERROR: No se pudo cargar "modelo/avatar.ply". Verifica la ruta.';
+        statusDiv.style.color = '#ff8888';
+        // Crear un modelo de reemplazo visible para depuración (un cubo colorido)
+        const fallbackGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+        const fallbackMat = new THREE.MeshStandardMaterial({ color: 0xff66aa, emissive: 0x331133 });
+        const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
+        fallbackMesh.position.set(0, 0.2, 0);
+        scene.add(fallbackMesh);
+        currentModel = fallbackMesh;
+      }
+    }
+
+    // --- APLICAR ROTACIÓN, TRASLACIÓN Y ESCALA SOBRE MATRIZ BASE (actualización en tiempo real)---
+    function updateAllTransformations() {
+      if (!currentModel) return;
+      
+      const rotXDeg = parseFloat(document.getElementById('rotX').value);
+      const rotYDeg = parseFloat(document.getElementById('rotY').value);
+      const rotZDeg = parseFloat(document.getElementById('rotZ').value);
+      const posX = parseFloat(document.getElementById('posX').value);
+      const posY = parseFloat(document.getElementById('posY').value);
+      const posZ = parseFloat(document.getElementById('posZ').value);
+      const sclX = parseFloat(document.getElementById('sclX').value);
+      const sclY = parseFloat(document.getElementById('sclY').value);
+      const sclZ = parseFloat(document.getElementById('sclZ').value);
+      
+      // Actualizar displays
+      document.getElementById('rotXVal').innerText = rotXDeg + '°';
+      document.getElementById('rotYVal').innerText = rotYDeg + '°';
+      document.getElementById('rotZVal').innerText = rotZDeg + '°';
+      document.getElementById('posXVal').innerText = posX.toFixed(2);
+      document.getElementById('posYVal').innerText = posY.toFixed(2);
+      document.getElementById('posZVal').innerText = posZ.toFixed(2);
+      document.getElementById('sclXVal').innerText = sclX.toFixed(2);
+      document.getElementById('sclYVal').innerText = sclY.toFixed(2);
+      document.getElementById('sclZVal').innerText = sclZ.toFixed(2);
+      
+      const center = modelBaseCenter;
+      const scaleFactor = modelBaseScale;
+      
+      // Matriz base: desplazar al origen, rotar 180° X (corrección orientación), aplicar escala base
+      const baseMat = new THREE.Matrix4();
+      baseMat.makeTranslation(-center.x, -center.y, -center.z);
+      const rot180Base = new THREE.Matrix4().makeRotationX(Math.PI);
+      baseMat.multiplyMatrices(rot180Base, baseMat);
+      const scaleBaseMat = new THREE.Matrix4().makeScale(scaleFactor, scaleFactor, scaleFactor);
+      baseMat.multiplyMatrices(scaleBaseMat, baseMat);
+      
+      // Transformaciones adicionales: escala extra (independiente), luego rotación, luego traslación
+      const extraScaleMat = new THREE.Matrix4().makeScale(sclX, sclY, sclZ);
+      const rotRadX = rotXDeg * Math.PI / 180;
+      const rotRadY = rotYDeg * Math.PI / 180;
+      const rotRadZ = rotZDeg * Math.PI / 180;
+      const rotMat = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(rotRadX, rotRadY, rotRadZ, 'XYZ'));
+      const transMat = new THREE.Matrix4().makeTranslation(posX, posY, posZ);
+      
+      // Orden: escala extra -> rotación -> traslación (aplicado sobre la base ya centrada)
+      let finalMat = baseMat.clone();
+      finalMat.multiplyMatrices(extraScaleMat, finalMat);
+      finalMat.multiplyMatrices(rotMat, finalMat);
+      finalMat.multiplyMatrices(transMat, finalMat);
+      
+      currentModel.matrix.copy(finalMat);
+      currentModel.matrixWorldNeedsUpdate = true;
+    }
+
+    // --- RESET COMPLETO DE TODAS LAS TRANSFORMACIONES ---
+    function resetAll() {
+      document.getElementById('rotX').value = 0;
+      document.getElementById('rotY').value = 0;
+      document.getElementById('rotZ').value = 0;
+      document.getElementById('posX').value = 0;
+      document.getElementById('posY').value = 0;
+      document.getElementById('posZ').value = 0;
+      document.getElementById('sclX').value = 1;
+      document.getElementById('sclY').value = 1;
+      document.getElementById('sclZ').value = 1;
+      updateAllTransformations();
+      
+      // Opcional: re-centrar la cámara ligeramente
+      orbitControls.target.set(0, 0.2, 0);
+      orbitControls.update();
+    }
+
+    // --- EVENTOS Y UI ---
+    function bindEvents() {
+      const sliders = ['rotX', 'rotY', 'rotZ', 'posX', 'posY', 'posZ', 'sclX', 'sclY', 'sclZ'];
+      sliders.forEach(id => {
+        document.getElementById(id).addEventListener('input', () => updateAllTransformations());
+      });
+      document.getElementById('resetBtn').addEventListener('click', resetAll);
+      
+      const closeBtn = document.getElementById('closeControlsBtn');
+      const panel = document.getElementById('controlsPanel');
+      const toggleBtn = document.getElementById('togglePanelBtn');
+      
+      closeBtn.addEventListener('click', () => {
+        panel.classList.add('closed');
+        toggleBtn.style.display = 'block';
+      });
+      
+      toggleBtn.addEventListener('click', () => {
+        panel.classList.remove('closed');
+        toggleBtn.style.display = 'none';
+      });
+    }
+    
+    // --- DECORACIÓN VISUAL: grid y ejes ---
+    const gridHelper = new THREE.GridHelper(6, 24, 0x88aaff, 0x335588);
+    gridHelper.position.y = -0.85;
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.35;
+    scene.add(gridHelper);
+    
+    const axesHelper = new THREE.AxesHelper(1.2);
+    axesHelper.material.transparent = true;
+    axesHelper.material.opacity = 0.2;
+    scene.add(axesHelper);
+    
+    // Pequeña luz auxiliar desde abajo
+    const fillBottom = new THREE.PointLight(0x6699ff, 0.35);
+    fillBottom.position.set(0, -1, 0);
+    scene.add(fillBottom);
+    
+    // --- INICIALIZAR TODO ---
+    loadAndSetupModel();
+    bindEvents();
+    
+    // Animación continua
+    function animate() {
+      requestAnimationFrame(animate);
+      orbitControls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+    
+    window.addEventListener('resize', onWindowResize, false);
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+  </script>
+</body>
+</html>
